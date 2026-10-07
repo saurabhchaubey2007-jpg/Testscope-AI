@@ -40,3 +40,18 @@ def test_deterministic_classify():
     assert deterministic_classify("SyntaxError: invalid syntax", "") == "TEST_DEFECT"
     assert deterministic_classify("E       fixture 'foo' not found", "") == "TEST_DEFECT"
     assert deterministic_classify("AssertionError: assert 1 == 2", "") is None
+
+
+def test_python_generation_preserves_code_and_rejects_truncation(monkeypatch):
+    from types import SimpleNamespace
+
+    source = 'def test_quotes():\n    assert "hello" == \'hello\'\n'
+    response = SimpleNamespace(content=f"```python\n{source}```", response_metadata={"finish_reason": "stop"})
+    monkeypatch.setattr(router, "get_llm", lambda: SimpleNamespace(invoke=lambda prompt: response))
+    suite = router.generate_python_suite("Generate tests", GeneratedTestSuite, "test_generated.py")
+    assert suite.tests[0].code == source
+    compile(suite.tests[0].code, "test_generated.py", "exec")
+
+    response.response_metadata["finish_reason"] = "length"
+    with pytest.raises(ValueError, match="truncated"):
+        router.generate_python_suite("Generate tests", GeneratedTestSuite, "test_generated.py")

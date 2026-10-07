@@ -1,6 +1,6 @@
 import os
 from pydantic import BaseModel, Field
-from packages.llm_router.router import generate_structured
+from packages.llm_router.router import generate_python_code
 
 class RepairedTest(BaseModel):
     patch: str = Field(description="The complete new python code for the test file")
@@ -47,7 +47,7 @@ def repair_tests(failures: list, execution_results: dict, generated_tests: list,
         """
         
         try:
-            repair = generate_structured(prompt, RepairedTest)
+            repair = RepairedTest(patch=generate_python_code(prompt), explanation=failure["explanation"])
             
             # Save the repaired test
             with open(test["file_path"], "w", encoding="utf-8") as f:

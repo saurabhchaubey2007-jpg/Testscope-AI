@@ -28,7 +28,12 @@ def analyze_failures(execution_results: dict, generated_tests: list) -> list:
     test_code_map = {t["name"]: t["test_code"] for t in generated_tests}
     
     for name, result in execution_results.items():
-        if result["status"] in ["PASSED", "TIMEOUT", "ERROR"]:
+        if result["status"] == "PASSED":
+            continue
+        if result["status"] in ["TIMEOUT", "ERROR"]:
+            analysis_list.append({"test_name": name, "category": "ENV_FAILURE",
+                                  "explanation": result.get("stderr") or "Execution failed",
+                                  "evidence": [result.get("stderr", "")], "needs_review": True})
             continue
             
         test_code = test_code_map.get(name, "")
